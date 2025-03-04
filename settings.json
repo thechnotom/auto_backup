@@ -29,7 +29,8 @@
             "timer": true,
             "operation": true,
             "interaction": true,
-            "error": true
+            "error": true,
+            "MESSAGE": true
         }
     }
 }
