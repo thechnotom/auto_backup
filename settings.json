@@ -1,0 +1,35 @@
+{
+    "backups": {
+        "src": "source",
+        "dest_dir": "backups",
+        "max_num": 5,
+        "time": 500,
+        "retry_time": 30,
+        "immediately": true,
+        "max_use_of_free_space": 0.9
+    },
+    "logging": {
+        "do_logging": true,
+        "do_type": true,
+        "do_location": true,
+        "do_short_location": true,
+        "do_timestamp": true,
+        "console": {
+            "enable": true
+        },
+        "file": {
+            "enable": true,
+            "clear": true,
+            "output_filename": "logged_output.txt",
+            "max_file_size": 1000000
+        },
+        "types": {
+            "info": true,
+            "warning": true,
+            "timer": true,
+            "operation": true,
+            "interaction": true,
+            "error": true
+        }
+    }
+}
