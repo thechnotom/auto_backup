@@ -163,4 +163,8 @@ if __name__ == "__main__":
     except KeyboardInterrupt as e:
         backupManager.logger.MESSAGE("Caught interrupt... stopping backups")
         backupManager.toggle_state()  # stop backups
+    except Exception as e:
+        backupManager.logger.MESSAGE("An unknown exception caused the program to halt")
+        backupManager.logger.MESSAGE(str(e))
+        raise e
     backupManager.logger.MESSAGE("Program terminated")
