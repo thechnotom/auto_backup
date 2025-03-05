@@ -6,7 +6,8 @@
         "time": 500,
         "retry_time": 30,
         "immediately": true,
-        "max_use_of_free_space": 0.9
+        "max_use_of_free_space": 0.9,
+        "operations_package": "mc_server_operations"
     },
     "logging": {
         "do_logging": true,
