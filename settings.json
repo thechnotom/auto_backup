@@ -3,11 +3,12 @@
         "src": "source",
         "dest_dir": "backups",
         "max_num": 5,
-        "time": 500,
+        "time": 300,
         "retry_time": 30,
         "immediately": true,
-        "max_use_of_free_space": 0.9,
-        "operations_package": "mc_server_operations"
+        "max_use_of_free_space": 0.5,
+        "operations_package": null,
+        "allow_skip": true
     },
     "logging": {
         "do_logging": true,

@@ -28,6 +28,7 @@ class BackupManager():
         self.active = False
         self.timer = None
         self.last_timestamp = float("-inf")
+        self.allow_skip = settings["backups"]["allow_skip"]
 
         self.logger = lg.Logger.from_settings_dict(settings["logging"])
 
@@ -83,7 +84,7 @@ class BackupManager():
         start_timestamp = None
         copy_duration = None
         end_timestamp = None
-        if fut.get_mod_time(self.src) > self.last_timestamp or self.last_timestamp == float("-inf"):
+        if (not self.allow_skip) or fut.get_mod_time(self.src) > self.last_timestamp or self.last_timestamp == float("-inf"):
             # Check if an older backup needs to be deleted
             while True:
                 backup_names = fc.get_backup_names(self.src, self.dest_dir)
