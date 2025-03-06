@@ -24,7 +24,7 @@ class BackupManager():
         self.backup_time = settings["backups"]["time"]
         self.max_num_backups = settings["backups"]["max_num"]
         self.max_use_of_free_space = settings["backups"]["max_use_of_free_space"]
-        self.backup_retry_time = settings["backups"]["immediately"]
+        self.backup_retry_time = settings["backups"]["retry_time"]
         self.active = False
         self.timer = None
         self.last_timestamp = float("-inf")
@@ -136,7 +136,7 @@ class BackupManager():
             self.add_message(f"Copy to \"{dest}\" failed (found changes in source)")
             fut.delete(destination, self.logger)
             self.logger.operation(f"The file \"{destination}\" has been deleted to avoid possible corruption")
-            self.logger.timer(f"Restarting timer after failed copy ({self.backup_retry_time} seconds)")
+            self.logger.timer(f"Restarting timer after failed copy ({copy_duration} seconds)")
             self.add_message(f"Trying again in {self.backup_retry_time} seconds")
             self.timer = BackupManager.start_timer(self.backup_retry_time, self.timer_callback)
             return
