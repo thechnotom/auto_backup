@@ -1,6 +1,5 @@
 from python_utilities import file_counting as fc
 from python_utilities import logger as lg
-from python_utilities import printers
 from python_utilities import files as fut
 from python_utilities import strings as sut
 import json
@@ -30,23 +29,7 @@ class BackupManager():
         self.timer = None
         self.last_timestamp = float("-inf")
 
-        printer = printers.select_printer(
-            settings["logging"]["do_logging"],
-            settings["logging"]["console"]["enable"],
-            settings["logging"]["file"]["enable"],
-            settings["logging"]["file"]["clear"],
-            settings["logging"]["file"]["output_filename"],
-            settings["logging"]["file"]["max_file_size"]
-        )
-
-        self.logger = lg.Logger(
-            settings["logging"]["types"],
-            printer=printer,
-            do_timestamp=settings["logging"]["do_timestamp"],
-            do_type=settings["logging"]["do_type"],
-            do_location=settings["logging"]["do_location"],
-            do_short_location=settings["logging"]["do_short_location"]
-        )
+        self.logger = lg.Logger.from_settings_dict(settings["logging"])
 
         operations_package_name = settings["backups"]["operations_package"]
         try:
@@ -171,20 +154,20 @@ class BackupManager():
 # -----------------------
 
 if __name__ == "__main__":
-    #signal.signal(signal.SIGINT, )
-
     backupManager = BackupManager()
-    backupManager.logger.MESSAGE("Program initiated")
+    backupManager.logger.info("Program initiated")
     backupManager.toggle_state()  # start backups
     try:
         while True:
             time.sleep(1)  # sleep to prevent high CPU usage
     except KeyboardInterrupt as e:
-        backupManager.logger.MESSAGE("Caught interrupt... stopping backups")
+        backupManager.logger.info("Caught interrupt... stopping backups")
         if backupManager.active:
             backupManager.toggle_state()  # stop backups
+        backupManager.logger.info("Waiting for outstanding operations to finish")
+        backupManager.timer.join()  # wait for any outstanding timer-related operations
     except Exception as e:
-        backupManager.logger.MESSAGE("An unknown exception caused the program to halt")
-        backupManager.logger.MESSAGE(str(e))
+        backupManager.logger.warning("An unknown exception caused the program to halt")
+        backupManager.logger.warning(str(e))
         raise e
-    backupManager.logger.MESSAGE("Program terminated")
+    backupManager.logger.info("Program terminated")
