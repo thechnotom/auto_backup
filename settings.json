@@ -23,7 +23,8 @@
             "enable": true,
             "clear": true,
             "output_filename": "logged_output.txt",
-            "max_file_size": 1000000
+            "max_file_size": 1000000,
+            "max_backups": 1
         },
         "types": {
             "info": true,
@@ -32,7 +33,7 @@
             "operation": true,
             "interaction": true,
             "error": true,
-            "MESSAGE": true
+            "MESSAGE": false
         }
     }
 }
