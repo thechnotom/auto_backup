@@ -137,9 +137,9 @@ class BackupManager():
             # Check if an older backup needs to be deleted
             while True:
                 backup_names = fc.get_backup_names(self.src, self.dest_dir)
-                earliest_backup = fc.get_relevant_backup_names(self.src, backup_names, self.dest_dir).first
                 if len(backup_names) <= self.max_num_backups:
                     break
+                earliest_backup = fc.get_relevant_backup_names(self.src, backup_names, self.dest_dir).first
                 self.logger.operation(f"Deleting \"{earliest_backup}\" as it is the oldest backup")
                 if not fut.delete(earliest_backup, self.logger):
                     self.logger.error(f"Could not delete \"{earliest_backup}\"")
