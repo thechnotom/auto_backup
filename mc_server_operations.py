@@ -22,14 +22,14 @@ class Operations(AbstractOperations):
     @staticmethod
     def pre_op():
         Operations.__log("Starting pre-op")
-        Operations.__log("pre-op: running save-all")
-        Operations.__run_screen_command("save-all")
-        Operations.__log("pre-op: completed save-all")
-        time.sleep(Operations.__settings["save_all_delay"])
         Operations.__log("pre-op: running save-off")
         Operations.__run_screen_command("save-off")
         Operations.__log("pre-op: completed save-off")
         time.sleep(Operations.__settings["save_off_delay"])
+        Operations.__log("pre-op: running save-all")
+        Operations.__run_screen_command("save-all")
+        Operations.__log("pre-op: completed save-all")
+        time.sleep(Operations.__settings["save_all_delay"])
 
     @staticmethod
     def post_op():
