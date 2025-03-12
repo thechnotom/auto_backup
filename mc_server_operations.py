@@ -1,6 +1,7 @@
 from abstract_operations import AbstractOperations
 from python_utilities.logger import Logger
 from python_utilities.files import import_json
+from default_operations import Operations as default_ops
 import subprocess
 import sys
 import time
@@ -20,8 +21,8 @@ class Operations(AbstractOperations):
         return True
 
     @staticmethod
-    def pre_op():
-        Operations.__log("Starting pre-op")
+    def init_op():
+        Operations.__log("Starting init_op")
         Operations.__log("pre-op: running save-off")
         Operations.__run_screen_command("save-off")
         Operations.__log("pre-op: completed save-off")
@@ -32,8 +33,20 @@ class Operations(AbstractOperations):
         time.sleep(Operations.__settings["save_all_delay"])
 
     @staticmethod
+    def check_need_op(source, destination, curr_source_timestamp, last_source_timestamp):
+        return default_ops.check_need_op(source, destination, curr_source_timestamp, last_source_timestamp)
+
+    @staticmethod
+    def pre_op():
+        Operations.__log("Starting pre-op")
+
+    @staticmethod
     def post_op():
         Operations.__log("Starting post-op")
+
+    @staticmethod
+    def final_op():
+        Operations.__log("Starting final-op")
         Operations.__log("post-op: running save-on")
         Operations.__run_screen_command("save-on")
         Operations.__log("post-op: completed save-on")

@@ -79,12 +79,14 @@ class BackupManager():
         destination = fc.get_relevant_backup_names(self.src, backup_names, self.dest_dir).next
         dest = sut.shorten_string(destination, 15, False, True)
 
+        self.operations.init_op()
+
         copy_result = False
         copy_skipped = False
         start_timestamp = None
         copy_duration = None
         end_timestamp = None
-        if (not self.allow_skip) or fut.get_mod_time(self.src) > self.last_timestamp or self.last_timestamp == float("-inf"):
+        if (not self.allow_skip) or self.operations.check_need_op(self.src, destination, fut.get_mod_time(self.src), self.last_timestamp):
             # Copy the file to a backup
             self.operations.pre_op()
             self.logger.operation(f"Copying \"{self.src}\" to \"{destination}\"")
@@ -103,6 +105,8 @@ class BackupManager():
         else:
             self.add_message("No changes were detected")
             copy_skipped = True
+
+        self.operations.final_op()
 
         # Prevent the timer from restarting if the user stops the backup while a file is being copied
         if not self.active:
