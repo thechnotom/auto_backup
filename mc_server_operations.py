@@ -42,15 +42,15 @@ class Operations(AbstractOperations):
         return default_ops.check_need(details)
 
     @staticmethod
-    def conditional_setup():
+    def conditional_setup(details):
         Operations.__log("Starting conditional_setup")
 
     @staticmethod
-    def conditional_cleanup():
+    def conditional_cleanup(details):
         Operations.__log("Starting conditional_cleanup")
 
     @staticmethod
-    def cleanup():
+    def cleanup(details):
         Operations.__log("Starting cleanup")
         Operations.__log("post-op: running save-on")
         Operations.__run_screen_command("save-on")
