@@ -2,6 +2,7 @@ from abstract_operations import AbstractOperations
 from python_utilities.logger import Logger
 from python_utilities.files import import_json
 from default_operations import Operations as default_ops
+from constants import ResultCodes as rc
 import subprocess
 import sys
 import time
@@ -21,7 +22,11 @@ class Operations(AbstractOperations):
         return True
 
     @staticmethod
-    def init_op():
+    def set_logger_func(logger_func):
+        Operations.__log = logger_func
+
+    @staticmethod
+    def setup(details):
         Operations.__log("Starting init_op")
         Operations.__log("pre-op: running save-off")
         Operations.__run_screen_command("save-off")
@@ -33,21 +38,42 @@ class Operations(AbstractOperations):
         time.sleep(Operations.__settings["save_all_delay"])
 
     @staticmethod
-    def check_need_op(source, destination, curr_source_timestamp, last_source_timestamp):
+    def check_need(source, destination, curr_source_timestamp, last_source_timestamp):
         return default_ops.check_need_op(source, destination, curr_source_timestamp, last_source_timestamp)
 
     @staticmethod
-    def pre_op():
-        Operations.__log("Starting pre-op")
+    def conditional_setup():
+        Operations.__log("Starting conditional_setup")
 
     @staticmethod
-    def post_op():
-        Operations.__log("Starting post-op")
+    def conditional_cleanup():
+        Operations.__log("Starting conditional_cleanup")
 
     @staticmethod
-    def final_op():
-        Operations.__log("Starting final-op")
+    def cleanup():
+        Operations.__log("Starting cleanup")
         Operations.__log("post-op: running save-on")
         Operations.__run_screen_command("save-on")
         Operations.__log("post-op: completed save-on")
         time.sleep(Operations.__settings["save_on_delay"])
+
+    @staticmethod
+    def final(details):
+        Operations.__log("Starting final")
+        if details.code == rc.SUCCESS:
+            Operations.__run_screen_command("say Backup successful")
+
+        elif details.code == rc.COPY_ERROR:
+            Operations.__run_screen_command("say There was an error copying the backup (retrying)")
+
+        elif details.code == rc.SOURCE_CHANGE:
+            Operations.__run_screen_command("say The source changed while being backed up (retrying)")
+
+        elif details.code == rc.CANNOT_DELETE_BAD_BACKUP or details.code == rc.CANNOT_DELETE_OLD_BACKUP:
+            Operations.__run_screen_command("say Old/bad backup deletion failed (backups have halted)")
+
+        else:
+            Operations.__run_screen_command("say Unknown result")
+        
+        if details.code != rc.SUCCESS:
+            Operations.__log(str(details))

@@ -2,27 +2,39 @@ from abc import ABC, abstractmethod
 
 class AbstractOperations(ABC):
 
+    __log = print
+
     @staticmethod
     @abstractmethod
-    def init_op():
+    def set_logger_func(logger_func):
         pass
 
     @staticmethod
     @abstractmethod
-    def check_need_op(source, destination, curr_source_timestamp, last_source_timestamp):
+    def setup(details):
         pass
 
     @staticmethod
     @abstractmethod
-    def pre_op():
+    def check_need(details):
         pass
 
     @staticmethod
     @abstractmethod
-    def post_op():
+    def conditional_setup(details):
         pass
 
     @staticmethod
     @abstractmethod
-    def final_op():
+    def conditional_cleanup(details):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def cleanup(details):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def final(details):
         pass

@@ -6,21 +6,29 @@ class Operations(AbstractOperations):
     __log = Logger.make_generic_logger().generic
 
     @staticmethod
-    def init_op():
-        Operations.__log("Default init-op")
+    def set_logger_func(logger_func):
+        Operations.__log = logger_func
 
     @staticmethod
-    def check_need_op(source, destination, curr_source_timestamp, last_source_timestamp):
-        return curr_source_timestamp > last_source_timestamp
+    def setup(details):
+        Operations.__log("Default setup")
 
     @staticmethod
-    def pre_op():
-        Operations.__log("Default pre-op")
+    def check_need(details):
+        return details.init_mod_timestamp > details.last_mod_timestamp
 
     @staticmethod
-    def post_op():
-        Operations.__log("Default post-op")
+    def conditional_setup(details):
+        Operations.__log("Default conditional_setup")
 
     @staticmethod
-    def final_op():
-        Operations.__log("Default final-op")
+    def conditional_cleanup(details):
+        Operations.__log("Default conditional_cleanup")
+
+    @staticmethod
+    def cleanup(details):
+        Operations.__log("Default cleanup")
+
+    @staticmethod
+    def final(details):
+        Operations.__log("Default final")

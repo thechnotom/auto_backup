@@ -2,13 +2,14 @@ from python_utilities import file_counting as fc
 from python_utilities import logger as lg
 from python_utilities import files as fut
 from python_utilities import strings as sut
+from CopyDetails import CopyDetails
+from constants import ResultCodes as rc
 import json
 import sys
 import threading
 import time
 import importlib
 import default_operations
-import signal
 
 
 class BackupManager():
@@ -39,6 +40,7 @@ class BackupManager():
             self.logger.warning(f"Could not import operations module \"{operations_package_name}\"")
             self.logger.warning(f"Using default no-ops instead")
             self.operations = default_operations.Operations
+        self.operations.set_logger_func(self.logger.operation)
 
     def add_message(self, string):
         self.logger.MESSAGE(string)
@@ -79,17 +81,23 @@ class BackupManager():
         destination = fc.get_relevant_backup_names(self.src, backup_names, self.dest_dir).next
         dest = sut.shorten_string(destination, 15, False, True)
 
-        self.operations.init_op()
+        copy_details = CopyDetails()
+        copy_details.src = self.src
+        copy_details.dest = destination
+        copy_details.last_mod_timestamp = self.last_timestamp
+        copy_details.init_mod_timestamp = fut.get_mod_time(self.src)
+
+        self.operations.setup(copy_details)
 
         copy_result = False
         copy_skipped = False
         start_timestamp = None
         copy_duration = None
         end_timestamp = None
-        if (not self.allow_skip) or self.operations.check_need_op(self.src, destination, fut.get_mod_time(self.src), self.last_timestamp):
+        if (not self.allow_skip) or self.operations.check_need(copy_details):
             # Copy the file to a backup
-            self.operations.pre_op()
-            self.logger.operation(f"Copying \"{self.src}\" to \"{destination}\"")
+            self.operations.conditional_setup(copy_details)
+            self.logger.backup(f"Copying \"{self.src}\" to \"{destination}\"")
             self.add_message(f"Starting to copy to \"{dest}\"")
             start_timestamp = fut.get_mod_time(self.src)
             self.last_timestamp = start_timestamp
@@ -98,15 +106,23 @@ class BackupManager():
             end_time = time.time()
             copy_duration = round(end_time - start_time, 2)
             end_timestamp = fut.get_mod_time(self.src)
-            self.logger.operation("Copy complete")
+            self.logger.backup("Copy complete")
             self.add_message("Copy complete")
-            self.operations.post_op()
+
+            copy_details.start_time = start_time
+            copy_details.end_time = end_time
+            copy_details.start_timestamp = start_timestamp
+            copy_details.end_timestamp = end_timestamp
+            copy_details.last_mod_timestamp = self.last_timestamp
+            copy_details.copy_result = copy_result
+            self.operations.conditional_cleanup(copy_details)
 
         else:
             self.add_message("No changes were detected")
             copy_skipped = True
 
-        self.operations.final_op()
+        copy_details.skipped = copy_skipped
+        self.operations.cleanup(copy_details)
 
         # Prevent the timer from restarting if the user stops the backup while a file is being copied
         if not self.active:
@@ -115,9 +131,12 @@ class BackupManager():
 
         # Check if the copy failed
         if (not copy_result) and (not copy_skipped):
-            self.logger.operation(f"The copy operation for \"{self.src}\" to \"{self.dest_dir}\" failed")
+            self.logger.backup(f"The copy operation for \"{self.src}\" to \"{self.dest_dir}\" failed")
             self.add_message(f"Copy to \"{dest}\" failed (copy error)")
             self.toggle_state(False)
+            copy_details.result = False
+            copy_details.code = rc.COPY_ERROR
+            self.operations.final(copy_details)
             return
 
         # Check if the source file has changed between the start and end of the copy
@@ -125,17 +144,26 @@ class BackupManager():
         if start_timestamp != end_timestamp and (not copy_skipped):
             self.logger.warning(f"The file \"{self.src}\" changed while being copied")
             self.add_message(f"Copy to \"{dest}\" failed (found changes in source)")
-            fut.delete(destination, self.logger)
-            self.logger.operation(f"The file \"{destination}\" has been deleted to avoid possible corruption")
+            if not fut.delete(destination, self.logger):
+                self.logger.error(f"Could not delete \"{destination}\"")
+                self.logger.error(f"Cancelling backup since bad backup could not be deleted")
+                copy_details.result = False
+                copy_details.code = rc.CANNOT_DELETE_BAD_BACKUP
+                self.operations.final(copy_details)
+                return
+            self.logger.backup(f"The file \"{destination}\" has been deleted to avoid possible corruption")
             self.logger.timer(f"Restarting timer after failed copy ({copy_duration} seconds)")
             self.logger.timer(f"Trying again in {self.backup_retry_time} seconds")
             self.add_message(f"Trying again in {self.backup_retry_time} seconds")
             self.timer = BackupManager.start_timer(self.backup_retry_time, self.timer_callback)
+            copy_details.result = False
+            copy_details.code = rc.SOURCE_CHANGE
+            self.operations.final(copy_details)
             return
 
         # If the file was successfully copied or skipped, restart the timer
         if not copy_skipped:
-            self.logger.operation(f"The file \"{self.src}\" has been copied to \"{destination}\" ({copy_duration} seconds)")
+            self.logger.backup(f"The file \"{self.src}\" has been copied to \"{destination}\" ({copy_duration} seconds)")
             self.add_message(f"Copy to \"{dest}\" successful ({copy_duration} seconds)")
 
             # Check if an older backup needs to be deleted
@@ -144,11 +172,14 @@ class BackupManager():
                 if len(backup_names) <= self.max_num_backups:
                     break
                 earliest_backup = fc.get_relevant_backup_names(self.src, backup_names, self.dest_dir).first
-                self.logger.operation(f"Deleting \"{earliest_backup}\" as it is the oldest backup")
+                self.logger.backup(f"Deleting \"{earliest_backup}\" as it is the oldest backup")
                 if not fut.delete(earliest_backup, self.logger):
                     self.logger.error(f"Could not delete \"{earliest_backup}\"")
                     self.logger.error(f"Cancelling backup since old backups could not be cleared")
                     self.toggle_state(False)
+                    copy_details.result = False
+                    copy_details.code = rc.CANNOT_DELETE_OLD_BACKUP
+                    self.operations.final(copy_details)
                     return
                 self.logger.info(f"Deleted \"{earliest_backup}\" successfully")
                 self.add_message(f"Deleted \"{sut.shorten_string(earliest_backup, 15, False, True)}\" successfully")
@@ -159,6 +190,9 @@ class BackupManager():
 
         self.logger.timer(f"Restarting timer after copy ({self.backup_time} seconds)")
         self.timer = BackupManager.start_timer(self.backup_time, self.timer_callback)
+        copy_details.result = True
+        copy_details.code = rc.SUCCESS
+        self.operations.final(copy_details)
 
 # -----------------------
 # Driver code
