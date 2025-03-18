@@ -64,7 +64,7 @@ class Operations(AbstractOperations):
             Operations.__run_screen_command("say Backup successful")
 
         elif details.code == rc.COPY_ERROR:
-            Operations.__run_screen_command("say There was an error copying the backup (retrying)")
+            Operations.__run_screen_command("say There was an error copying the backup (backups have halted)")
 
         elif details.code == rc.SOURCE_CHANGE:
             Operations.__run_screen_command("say The source changed while being backed up (retrying)")
