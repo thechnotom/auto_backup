@@ -27,14 +27,14 @@ class Operations(AbstractOperations):
 
     @staticmethod
     def setup(details):
-        Operations.__log("Starting init_op")
-        Operations.__log("pre-op: running save-off")
+        Operations.__log("Starting setup")
+        Operations.__log("setup: running save-off")
         Operations.__run_screen_command("save-off")
-        Operations.__log("pre-op: completed save-off")
+        Operations.__log("setup: completed save-off")
         time.sleep(Operations.__settings["save_off_delay"])
-        Operations.__log("pre-op: running save-all")
+        Operations.__log("setup: running save-all")
         Operations.__run_screen_command("save-all")
-        Operations.__log("pre-op: completed save-all")
+        Operations.__log("setup: completed save-all")
         time.sleep(Operations.__settings["save_all_delay"])
 
     @staticmethod
@@ -52,9 +52,9 @@ class Operations(AbstractOperations):
     @staticmethod
     def cleanup(details):
         Operations.__log("Starting cleanup")
-        Operations.__log("post-op: running save-on")
+        Operations.__log("cleanup: running save-on")
         Operations.__run_screen_command("save-on")
-        Operations.__log("post-op: completed save-on")
+        Operations.__log("cleanup: completed save-on")
         time.sleep(Operations.__settings["save_on_delay"])
 
     @staticmethod
