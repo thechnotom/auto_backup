@@ -38,8 +38,8 @@ class Operations(AbstractOperations):
         time.sleep(Operations.__settings["save_all_delay"])
 
     @staticmethod
-    def check_need(source, destination, curr_source_timestamp, last_source_timestamp):
-        return default_ops.check_need_op(source, destination, curr_source_timestamp, last_source_timestamp)
+    def check_need(details):
+        return default_ops.check_need(details)
 
     @staticmethod
     def conditional_setup():
