@@ -80,3 +80,4 @@ class Operations(AbstractOperations):
         
         if details.code != rc.SUCCESS:
             Operations.__log(str(details))
+        Operations.__log("Completed final")
