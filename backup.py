@@ -152,13 +152,13 @@ class BackupManager():
                 self.operations.final(copy_details)
                 return
             self.logger.backup(f"The file \"{destination}\" has been deleted to avoid possible corruption")
+            copy_details.result = False
+            copy_details.code = rc.SOURCE_CHANGE
+            self.operations.final(copy_details)
             self.logger.timer(f"Restarting timer after failed copy ({copy_duration} seconds)")
             self.logger.timer(f"Trying again in {self.backup_retry_time} seconds")
             self.add_message(f"Trying again in {self.backup_retry_time} seconds")
             self.timer = BackupManager.start_timer(self.backup_retry_time, self.timer_callback)
-            copy_details.result = False
-            copy_details.code = rc.SOURCE_CHANGE
-            self.operations.final(copy_details)
             return
 
         # If the file was successfully copied or skipped, restart the timer
@@ -188,11 +188,11 @@ class BackupManager():
             self.logger.info("Copy skipped")
             self.add_message("Copy skipped")
 
-        self.logger.timer(f"Restarting timer after copy ({self.backup_time} seconds)")
-        self.timer = BackupManager.start_timer(self.backup_time, self.timer_callback)
         copy_details.result = True
         copy_details.code = rc.SUCCESS
         self.operations.final(copy_details)
+        self.logger.timer(f"Restarting timer after copy ({self.backup_time} seconds)")
+        self.timer = BackupManager.start_timer(self.backup_time, self.timer_callback)
 
 # -----------------------
 # Driver code
