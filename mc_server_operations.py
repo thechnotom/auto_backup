@@ -36,6 +36,7 @@ class Operations(AbstractOperations):
         Operations.__run_screen_command("save-all")
         Operations.__log("setup: completed save-all")
         time.sleep(Operations.__settings["save_all_delay"])
+        Operations.__log("Completed setup")
 
     @staticmethod
     def check_need(details):
@@ -43,11 +44,11 @@ class Operations(AbstractOperations):
 
     @staticmethod
     def conditional_setup(details):
-        Operations.__log("Starting conditional_setup")
+        Operations.__log("No conditional_setup steps")
 
     @staticmethod
     def conditional_cleanup(details):
-        Operations.__log("Starting conditional_cleanup")
+        Operations.__log("No conditional_cleanup steps")
 
     @staticmethod
     def cleanup(details):
@@ -56,6 +57,7 @@ class Operations(AbstractOperations):
         Operations.__run_screen_command("save-on")
         Operations.__log("cleanup: completed save-on")
         time.sleep(Operations.__settings["save_on_delay"])
+        Operations.__log("Completed cleanup")
 
     @staticmethod
     def final(details):
