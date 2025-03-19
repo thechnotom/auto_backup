@@ -61,7 +61,10 @@ class Operations(AbstractOperations):
     def final(details):
         Operations.__log("Starting final")
         if details.code == rc.SUCCESS:
-            Operations.__run_screen_command("say Backup successful")
+            if details.skipped:
+                Operations.__run_screen_command("say Backup skipped (no changes found)")
+            else:
+                Operations.__run_screen_command("say Backup successful")
 
         elif details.code == rc.COPY_ERROR:
             Operations.__run_screen_command("say There was an error copying the backup (backups have halted)")
