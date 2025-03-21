@@ -18,6 +18,11 @@
         "do_timestamp": true,
         "do_type_missing_indicator": true,
         "strict_types": false,
+        "type_error_handling": {
+            "do_unknown_type_exception": false,
+            "do_override_type_exception": true,
+            "do_prohibited_type_exception": true
+        },
         "console": {
             "enable": true
         },
