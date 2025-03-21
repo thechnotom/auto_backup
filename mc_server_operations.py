@@ -9,7 +9,7 @@ import time
 
 class Operations(AbstractOperations):
 
-    __log = Logger.make_generic_logger().generic
+    __log = Logger.make_generic_logger()
     __settings = import_json("mc_server_operations_settings.json")
     __screen_name = __settings["screen_name"]
 

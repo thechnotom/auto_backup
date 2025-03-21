@@ -210,7 +210,8 @@ if __name__ == "__main__":
         if backupManager.active:
             backupManager.toggle_state()  # stop backups
         backupManager.logger.info("Waiting for outstanding operations to finish")
-        backupManager.timer.join()  # wait for any outstanding timer-related operations
+        if backupManager.timer is not None:
+            backupManager.timer.join()  # wait for any outstanding timer-related operations
     except Exception as e:
         backupManager.logger.warning("An unknown exception caused the program to halt")
         backupManager.logger.warning(str(e))

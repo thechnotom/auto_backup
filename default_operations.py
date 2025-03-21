@@ -3,7 +3,7 @@ from python_utilities.logger import Logger
 
 class Operations(AbstractOperations):
 
-    __log = Logger.make_generic_logger().generic
+    __log = Logger.make_generic_logger()
 
     @staticmethod
     def set_logger_func(logger_func):
