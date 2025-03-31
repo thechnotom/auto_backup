@@ -14,26 +14,40 @@ import default_operations
 
 class BackupManager():
 
-    def __init__(self):
-        settings = fut.import_json("settings.json")
-        if settings is None:
-            sys.exit(1)
-
-        self.src = settings["backups"]["src"]
-        self.dest_dir = settings["backups"]["dest_dir"]
-        self.backup_immediately = settings["backups"]["immediately"]
-        self.backup_time = settings["backups"]["time"]
-        self.max_num_backups = settings["backups"]["max_num"]
-        self.max_use_of_free_space = settings["backups"]["max_use_of_free_space"]
-        self.backup_retry_time = settings["backups"]["retry_time"]
+    def __init__(self, name, settings, logger=None):
+        self.name = name
+        self.src = settings["src"]
+        self.dest_dir = settings["dest_dir"]
+        self.backup_immediately = settings["immediately"]
+        self.backup_time = settings["time"]
+        self.max_num_backups = settings["max_num"]
+        self.max_use_of_free_space = settings["max_use_of_free_space"]
+        self.backup_retry_time = settings["retry_time"]
         self.active = False
         self.timer = None
         self.last_timestamp = float("-inf")
-        self.allow_skip = settings["backups"]["allow_skip"]
+        self.allow_skip = settings["allow_skip"]
 
-        self.logger = lg.Logger.from_settings_dict(settings["logging"])
+        # Make sure the logger (whether given or created here) has the expected logger types
+        self.__required_logger_types = ["info", "warning", "error", "timer", "operation", "interaction", "backup", "MESSAGE"]
+        self.logger = logger
+        if self.logger is None:
+            self.logger = lg.Logger(
+                types=None,
+                printer=lg.Logger.default_print,
+                do_timestamp=True,
+                do_type=True,
+                do_location=True,
+                do_short_location=False,
+                do_thread_name=True,
+                do_type_missing_indicator=True,
+                do_strict_types=False
+            )
+        for logger_type in self.__required_logger_types:
+            if not self.logger.has_type(logger_type):
+                self.logger.add_type(logger_type, True)
 
-        operations_package_name = settings["backups"]["operations_package"]
+        operations_package_name = settings["operations_package"]
         try:
             self.operations = importlib.import_module(operations_package_name).Operations
         except Exception as e:
@@ -42,14 +56,25 @@ class BackupManager():
             self.operations = default_operations.Operations
         self.operations.set_logger_func(self.logger.operation)
 
+
+    def get_required_logger_types():
+        return self.__required_logger_types.copy()
+
+
+    def is_active(self):
+        return self.active
+
+
     def add_message(self, string):
         self.logger.MESSAGE(string)
 
-    @staticmethod
-    def start_timer(seconds, callback, args=None, kargs=None):
+
+    def start_timer(self, seconds, callback, args=None, kargs=None):
         timer = threading.Timer(seconds, callback, args, kargs)
+        timer.name = f"{self.name if self.name is not None else 'manager'}-timer"
         timer.start()
         return timer
+
 
     def toggle_state(self, is_user_interaction=True):
         if self.src is None or self.dest_dir is None:
@@ -62,13 +87,14 @@ class BackupManager():
                 self.logger.error(f"Source \"{self.src}\" and/or destination \"{self.dest_dir}\" does not exist")
                 self.add_message("Missing source and/or destination")
                 return
-            self.timer = BackupManager.start_timer(0 if self.backup_immediately else self.backup_time, self.timer_callback)
+            self.timer = self.start_timer(0 if self.backup_immediately else self.backup_time, self.timer_callback)
         else:
             # Asking to stop a timer
             if is_user_interaction:
                 self.logger.interaction("Stopping timer")
             self.timer.cancel()
         self.active = not self.active
+
 
     def timer_callback(self):
         self.logger.timer("Timer complete")
@@ -158,7 +184,7 @@ class BackupManager():
             self.logger.timer(f"Restarting timer after failed copy ({copy_duration} seconds)")
             self.logger.timer(f"Trying again in {self.backup_retry_time} seconds")
             self.add_message(f"Trying again in {self.backup_retry_time} seconds")
-            self.timer = BackupManager.start_timer(self.backup_retry_time, self.timer_callback)
+            self.timer = self.start_timer(self.backup_retry_time, self.timer_callback)
             return
 
         # If the file was successfully copied or skipped, restart the timer
@@ -192,28 +218,56 @@ class BackupManager():
         copy_details.code = rc.SUCCESS
         self.operations.final(copy_details)
         self.logger.timer(f"Restarting timer after copy ({self.backup_time} seconds)")
-        self.timer = BackupManager.start_timer(self.backup_time, self.timer_callback)
+        self.timer = self.start_timer(self.backup_time, self.timer_callback)
+
+
+    def start_backup(self):
+        self.logger.info(f"Initiating backups via \"{self.name}\"")
+        if self.active:
+            return False
+        self.toggle_state(True)  # start backups
+        return True
+
+
+    def stop_backup(self):
+        self.logger.info(f"Stopping backups for {self.name}")
+        if not self.active:
+            return False
+        self.toggle_state(False)  # stop backups
+
+        self.logger.info("Waiting for outstanding operations to finish")
+        if self.timer is not None:
+            self.timer.join()  # wait for any outstanding timer-related operations
+
+        self.logger.info("Backups terminated")
+        return True
+
+
+    @staticmethod
+    def run(settings, logger=None):
+        backupManager = BackupManager("single-manager", settings, logger)
+        backupManager.start_backup()
+        try:
+            while True:
+                time.sleep(1)  # sleep to prevent high CPU usage
+        except KeyboardInterrupt as e:
+            backupManager.logger.info("Caught interrupt... stopping backups")
+            backupManager.stop_backup()
+        except Exception as e:
+            backupManager.logger.warning("An unknown exception caused the program to halt")
+            backupManager.logger.warning(str(e))
+            raise e
+        backupManager.logger.info("Program terminated")
+
 
 # -----------------------
 # Driver code
 # -----------------------
 
 if __name__ == "__main__":
-    backupManager = BackupManager()
-    backupManager.logger.info("Program initiated")
-    backupManager.toggle_state()  # start backups
-    try:
-        while True:
-            time.sleep(1)  # sleep to prevent high CPU usage
-    except KeyboardInterrupt as e:
-        backupManager.logger.info("Caught interrupt... stopping backups")
-        if backupManager.active:
-            backupManager.toggle_state()  # stop backups
-        backupManager.logger.info("Waiting for outstanding operations to finish")
-        if backupManager.timer is not None:
-            backupManager.timer.join()  # wait for any outstanding timer-related operations
-    except Exception as e:
-        backupManager.logger.warning("An unknown exception caused the program to halt")
-        backupManager.logger.warning(str(e))
-        raise e
-    backupManager.logger.info("Program terminated")
+    settings_filename = "settings.json"
+    if len(sys.argv) == 2:
+        settings_filename = sys.argv[1]
+    settings = fut.import_json(settings_filename)
+    logger = lg.Logger.from_settings_dict(settings["logging"])
+    BackupManager.run(settings["backups"], logger=logger)

@@ -15,9 +15,10 @@
         "do_type": true,
         "do_location": true,
         "do_short_location": true,
+        "do_thread_name": true,
         "do_timestamp": true,
         "do_type_missing_indicator": true,
-        "strict_types": false,
+        "do_strict_types": false,
         "type_error_handling": {
             "do_unknown_type_exception": false,
             "do_override_type_exception": true,
