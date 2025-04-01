@@ -1,15 +1,15 @@
-from python_utilities import file_counting as fc
-from python_utilities import logger as lg
-from python_utilities import files as fut
-from python_utilities import strings as sut
-from CopyDetails import CopyDetails
-from constants import ResultCodes as rc
+from .python_utilities import file_counting as fc
+from .python_utilities import logger as lg
+from .python_utilities import files as fut
+from .python_utilities import strings as sut
+from .CopyDetails import CopyDetails
+from .constants import ResultCodes as rc
 import json
 import sys
 import threading
 import time
 import importlib
-import default_operations
+from . import default_operations
 
 
 class BackupManager():

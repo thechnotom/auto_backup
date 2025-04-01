@@ -1,8 +1,8 @@
-from abstract_operations import AbstractOperations
-from python_utilities.logger import Logger
-from python_utilities.files import import_json
-from default_operations import Operations as default_ops
-from constants import ResultCodes as rc
+from .abstract_operations import AbstractOperations
+from .python_utilities.logger import Logger
+from .python_utilities.files import import_json
+from .default_operations import Operations as default_ops
+from .constants import ResultCodes as rc
 import subprocess
 import sys
 import time

@@ -1,5 +1,5 @@
-from abstract_operations import AbstractOperations
-from python_utilities.logger import Logger
+from .abstract_operations import AbstractOperations
+from .python_utilities.logger import Logger
 
 class Operations(AbstractOperations):
 
