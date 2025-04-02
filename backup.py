@@ -270,4 +270,4 @@ if __name__ == "__main__":
         settings_filename = sys.argv[1]
     settings = fut.import_json(settings_filename)
     logger = lg.Logger.from_settings_dict(settings["logging"])
-    BackupManager.run(settings["backups"], logger=logger, "main")
+    BackupManager.run(settings["backups"], logger=logger, name="main")
