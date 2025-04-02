@@ -14,7 +14,7 @@ from . import default_operations
 
 class BackupManager():
 
-    def __init__(self, name, settings, logger=None):
+    def __init__(self, settings, logger=None, name=None):
         self.name = name
         self.src = settings["src"]
         self.dest_dir = settings["dest_dir"]
@@ -244,8 +244,8 @@ class BackupManager():
 
 
     @staticmethod
-    def run(settings, logger=None):
-        backupManager = BackupManager("single-manager", settings, logger)
+    def run(settings, logger=None, name=None):
+        backupManager = BackupManager(settings, logger, name)
         backupManager.start_backup()
         try:
             while True:
@@ -270,4 +270,4 @@ if __name__ == "__main__":
         settings_filename = sys.argv[1]
     settings = fut.import_json(settings_filename)
     logger = lg.Logger.from_settings_dict(settings["logging"])
-    BackupManager.run(settings["backups"], logger=logger)
+    BackupManager.run(settings["backups"], logger=logger, "main")
