@@ -1,7 +1,6 @@
-from .abstract_operations import AbstractOperations
 from .python_utilities.logger import Logger
 
-class Operations(AbstractOperations):
+class Operations:
 
     __log = Logger.make_generic_logger()
 

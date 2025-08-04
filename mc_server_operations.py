@@ -1,13 +1,12 @@
-from .abstract_operations import AbstractOperations
+from .default_operations import Operations as DefaultOps
 from .python_utilities.logger import Logger
 from .python_utilities.files import import_json
-from .default_operations import Operations as default_ops
 from .constants import ResultCodes as rc
 import subprocess
 import sys
 import time
 
-class Operations(AbstractOperations):
+class Operations(DefaultOps):
 
     __log = Logger.make_generic_logger()
     __settings = import_json("mc_server_operations_settings.json")
@@ -37,10 +36,6 @@ class Operations(AbstractOperations):
         Operations.__log("setup: completed save-all")
         time.sleep(Operations.__settings["save_all_delay"])
         Operations.__log("Completed setup")
-
-    @staticmethod
-    def check_need(details):
-        return default_ops.check_need(details)
 
     @staticmethod
     def conditional_setup(details):
