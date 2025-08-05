@@ -8,7 +8,9 @@
         "immediately": true,
         "max_use_of_free_space": 0.5,
         "operations_package": null,
-        "allow_skip": true
+        "allow_skip": true,
+        "source_accessible": true,
+        "dest_accessible": true
     },
     "logging": {
         "do_logging": true,

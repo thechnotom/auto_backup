@@ -1,4 +1,5 @@
 from .python_utilities.logger import Logger
+from .python_utilities import files as fut
 
 class Operations:
 
@@ -19,6 +20,10 @@ class Operations:
     @staticmethod
     def conditional_setup(details):
         Operations.__log("Default conditional_setup")
+
+    @staticmethod
+    def copy(source, destination, max_use_of_free_space, logger=None):
+        return fut.copy(source, destination, max_use_of_free_space, logger)
 
     @staticmethod
     def conditional_cleanup(details):

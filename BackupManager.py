@@ -26,6 +26,8 @@ class BackupManager():
         self.timer = None
         self.last_timestamp = float("-inf")
         self.allow_skip = settings["allow_skip"]
+        self.source_accessible = settings["source_accessible"]
+        self.dest_accessible = settings["dest_accessible"]
 
         # Make sure the logger (whether given or created here) has the expected logger types
         self.__required_logger_types = ["info", "warning", "error", "timer", "operation", "interaction", "backup", "MESSAGE"]
@@ -68,6 +70,18 @@ class BackupManager():
         self.logger.MESSAGE(string)
 
 
+    def source_exists(self):
+        return not self.source_accessible or fut.target_exists(self.src)
+
+
+    def dest_exists(self):
+        return not self.dest_accessible or fut.target_exists(self.dest_dir)
+
+
+    def get_source_mod_time(self):
+        return fut.get_mod_time(self.src) if self.source_accessible else float("inf")
+
+
     def start_timer(self, seconds, callback, args=None, kargs=None):
         timer = threading.Timer(seconds, callback, args, kargs)
         timer.name = f"{self.name if self.name is not None else 'manager'}-timer"
@@ -82,7 +96,7 @@ class BackupManager():
         if not self.active:
             # Asking to start a timer
             self.logger.interaction("Starting timer")
-            if not fut.target_exists(self.src) or not fut.target_exists(self.dest_dir):
+            if not self.source_exists() or not self.dest_exists():
                 self.logger.error(f"Source \"{self.src}\" and/or destination \"{self.dest_dir}\" does not exist")
                 self.add_message("Missing source and/or destination")
                 return
@@ -97,20 +111,22 @@ class BackupManager():
 
     def timer_callback(self):
         self.logger.timer("Timer complete")
-        if not fut.target_exists(self.src) or not fut.target_exists(self.dest_dir):
+        if not self.source_exists() or not self.dest_exists():
             self.logger.error(f"Source \"{self.src}\" and/or destination \"{self.dest_dir}\" does not exist")
             self.add_message("Missing source and/or destination")
             self.toggle_state(False)
             return
-        backup_names = fc.get_backup_names(self.src, self.dest_dir)
-        destination = fc.get_relevant_backup_names(self.src, backup_names, self.dest_dir).next
+        destination = None
+        if self.source_accessible and self.dest_accessible:
+            backup_names = fc.get_backup_names(self.src, self.dest_dir)
+            destination = fc.get_relevant_backup_names(self.src, backup_names, self.dest_dir).next
         dest = sut.shorten_string(destination, 15, False, True)
 
         copy_details = CopyDetails()
         copy_details.src = self.src
         copy_details.dest = destination
         copy_details.last_mod_timestamp = self.last_timestamp
-        copy_details.init_mod_timestamp = fut.get_mod_time(self.src)
+        copy_details.init_mod_timestamp = self.get_source_mod_time()
 
         self.operations.setup(copy_details)
 
@@ -124,13 +140,13 @@ class BackupManager():
             self.operations.conditional_setup(copy_details)
             self.logger.backup(f"Copying \"{self.src}\" to \"{destination}\"")
             self.add_message(f"Starting to copy to \"{dest}\"")
-            start_timestamp = fut.get_mod_time(self.src)
+            start_timestamp = self.get_source_mod_time()
             self.last_timestamp = start_timestamp
             start_time = time.time()
-            copy_result = fut.copy(self.src, destination, self.max_use_of_free_space, self.logger)
+            copy_result = self.operations.copy(self.src, destination, self.max_use_of_free_space, self.logger)
             end_time = time.time()
             copy_duration = round(end_time - start_time, 2)
-            end_timestamp = fut.get_mod_time(self.src)
+            end_timestamp = self.get_source_mod_time()
             self.logger.backup("Copy complete")
             self.add_message("Copy complete")
 
@@ -166,7 +182,7 @@ class BackupManager():
 
         # Check if the source file has changed between the start and end of the copy
         # If it has changed, delete the potentially corrupted backup and reset the timer with a quicker timer
-        if start_timestamp != end_timestamp and (not copy_skipped):
+        if self.dest_accessible and start_timestamp != end_timestamp and (not copy_skipped):
             self.logger.warning(f"The file \"{self.src}\" changed while being copied")
             self.add_message(f"Copy to \"{dest}\" failed (found changes in source)")
             if not fut.delete(destination, self.logger):
@@ -192,7 +208,7 @@ class BackupManager():
             self.add_message(f"Copy to \"{dest}\" successful ({copy_duration} seconds)")
 
             # Check if an older backup needs to be deleted
-            while True:
+            while self.source_accessible and self.dest_accessible:
                 backup_names = fc.get_backup_names(self.src, self.dest_dir)
                 if len(backup_names) <= self.max_num_backups:
                     break
