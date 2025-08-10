@@ -1,16 +1,15 @@
 {
     "backups": {
-        "src": "source",
-        "dest_dir": "backups",
+        "src": "auto_backup_cli/test/stuff",
+        "dest_dir": "/home/deck/Desktop/test/backups",
         "max_num": 5,
         "time": 300,
         "retry_time": 30,
         "immediately": true,
         "max_use_of_free_space": 0.5,
-        "operations_package": null,
-        "allow_skip": true,
-        "source_accessible": true,
-        "dest_accessible": true
+        "operations_module_name": "auto_backup_cli.remote_operations",
+        "operations_module_file": "C:/Users/thoma/Desktop/Extra/Programming/Projects/auto_backup_cli/remote_operations.py",
+        "allow_skip": false
     },
     "logging": {
         "do_logging": true,

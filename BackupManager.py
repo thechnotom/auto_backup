@@ -1,14 +1,12 @@
-from .python_utilities import file_counting as fc
 from .python_utilities import logger as lg
-from .python_utilities import files as fut
 from .python_utilities import strings as sut
 from .CopyDetails import CopyDetails
 from .constants import ResultCodes as rc
-from .default_operations import Operations
+from .local_operations import Operations as default_operations
 import sys
 import threading
 import time
-import importlib
+import importlib.util
 
 
 class BackupManager():
@@ -26,8 +24,6 @@ class BackupManager():
         self.timer = None
         self.last_timestamp = float("-inf")
         self.allow_skip = settings["allow_skip"]
-        self.source_accessible = settings["source_accessible"]
-        self.dest_accessible = settings["dest_accessible"]
 
         # Make sure the logger (whether given or created here) has the expected logger types
         self.__required_logger_types = ["info", "warning", "error", "timer", "operation", "interaction", "backup", "MESSAGE"]
@@ -48,13 +44,19 @@ class BackupManager():
             if not self.logger.has_type(logger_type):
                 self.logger.add_type(logger_type, True)
 
-        operations_package_name = settings["operations_package"]
+        operations_package_name = settings["operations_module_name"]
+        operations_package_file = settings["operations_module_file"]
         try:
-            self.operations = importlib.import_module(operations_package_name).Operations
+            spec = importlib.util.spec_from_file_location(operations_package_name, operations_package_file)
+            operations_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(operations_module)
+            self.operations = operations_module.Operations
+            self.logger.info(f"Loaded operatons package \"{operations_package_name}\" from: {operations_package_file}")
         except Exception as e:
-            self.logger.warning(f"Could not import operations module \"{operations_package_name}\"")
-            self.logger.warning(f"Using default no-ops instead")
-            self.operations = Operations
+            self.logger.warning(f"Could not import operations module \"{operations_package_name}\" from: {operations_package_file}")
+            self.logger.warning(f"Caught: {e}")
+            self.logger.warning(f"Using default local operations instead")
+            self.operations = default_operations
         self.operations.set_logger_func(self.logger.operation)
 
 
@@ -71,16 +73,15 @@ class BackupManager():
 
 
     def source_exists(self):
-        return not self.source_accessible or fut.target_exists(self.src)
+        return self.operations.src_exists(self.src)
 
 
     def dest_exists(self):
-        return not self.dest_accessible or fut.target_exists(self.dest_dir)
+        return self.operations.dest_exists(self.dest_dir)
 
 
     def get_source_mod_time(self):
-        return fut.get_mod_time(self.src) if self.source_accessible else float("inf")
-
+        return self.operations.get_src_mod_time(self.src)
 
     def start_timer(self, seconds, callback, args=None, kargs=None):
         timer = threading.Timer(seconds, callback, args, kargs)
@@ -116,10 +117,8 @@ class BackupManager():
             self.add_message("Missing source and/or destination")
             self.toggle_state(False)
             return
-        destination = None
-        if self.source_accessible and self.dest_accessible:
-            backup_names = fc.get_backup_names(self.src, self.dest_dir)
-            destination = fc.get_relevant_backup_names(self.src, backup_names, self.dest_dir).next
+        backup_names = self.operations.get_backup_names(self.src, self.dest_dir)
+        destination = self.operations.get_relevant_backup_names(self.src, backup_names, self.dest_dir).next
         dest = sut.shorten_string(destination, 15, False, True)
 
         copy_details = CopyDetails()
@@ -143,7 +142,7 @@ class BackupManager():
             start_timestamp = self.get_source_mod_time()
             self.last_timestamp = start_timestamp
             start_time = time.time()
-            copy_result = self.operations.copy(self.src, destination, self.max_use_of_free_space, self.logger)
+            copy_result = self.operations.copy(self.src, destination, self.max_use_of_free_space)
             end_time = time.time()
             copy_duration = round(end_time - start_time, 2)
             end_timestamp = self.get_source_mod_time()
@@ -182,10 +181,10 @@ class BackupManager():
 
         # Check if the source file has changed between the start and end of the copy
         # If it has changed, delete the potentially corrupted backup and reset the timer with a quicker timer
-        if self.dest_accessible and start_timestamp != end_timestamp and (not copy_skipped):
+        if start_timestamp != end_timestamp and (not copy_skipped):
             self.logger.warning(f"The file \"{self.src}\" changed while being copied")
             self.add_message(f"Copy to \"{dest}\" failed (found changes in source)")
-            if not fut.delete(destination, self.logger):
+            if not self.operations.delete_dest(destination):
                 self.logger.error(f"Could not delete \"{destination}\"")
                 self.logger.error(f"Cancelling backup since bad backup could not be deleted")
                 copy_details.result = False
@@ -208,13 +207,13 @@ class BackupManager():
             self.add_message(f"Copy to \"{dest}\" successful ({copy_duration} seconds)")
 
             # Check if an older backup needs to be deleted
-            while self.source_accessible and self.dest_accessible:
-                backup_names = fc.get_backup_names(self.src, self.dest_dir)
+            while True:
+                backup_names = self.operations.get_backup_names(self.src, self.dest_dir)
                 if len(backup_names) <= self.max_num_backups:
                     break
-                earliest_backup = fc.get_relevant_backup_names(self.src, backup_names, self.dest_dir).first
+                earliest_backup = self.operations.get_relevant_backup_names(self.src, backup_names, self.dest_dir).first
                 self.logger.backup(f"Deleting \"{earliest_backup}\" as it is the oldest backup")
-                if not fut.delete(earliest_backup, self.logger):
+                if not self.operations.delete_dest(earliest_backup):
                     self.logger.error(f"Could not delete \"{earliest_backup}\"")
                     self.logger.error(f"Cancelling backup since old backups could not be cleared")
                     self.toggle_state(False)

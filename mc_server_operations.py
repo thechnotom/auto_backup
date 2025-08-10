@@ -1,4 +1,4 @@
-from .default_operations import Operations as DefaultOps
+from .local_operations import Operations as DefaultOps
 from .python_utilities.logger import Logger
 from .python_utilities.files import import_json
 from .constants import ResultCodes as rc
