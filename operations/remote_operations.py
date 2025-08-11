@@ -8,7 +8,7 @@ from .abstract_operations import AbstractOperations
 class Operations(AbstractOperations):
 
     __log = Logger.make_generic_logger()
-    __settings = import_json("mc_server_operations_settings.json")
+    __settings = import_json("remote_operations_settings.json")
     __copy_timeout = __settings["copy_timeout"]
     __get_modification_timestamp_timeout = settings["get_modification_timestamp_timeout"]
     __remote_manager = rfut.ProcessSSH(
