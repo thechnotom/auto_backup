@@ -1,14 +1,11 @@
-from .python_utilities.logger import Logger
-from .python_utilities import remote_files as rfut
-from .python_utilities import files as fut
-from .python_utilities import file_counting as fc
+from ..python_utilities.logger import Logger
+from ..python_utilities import files as fut
+from ..python_utilities import file_counting as fc
 from .abstract_operations import AbstractOperations
 
 class Operations(AbstractOperations):
 
     __log = Logger.make_generic_logger()
-    #__remote_manager = rfut.ProcessSSH("thoma", "raspberrypi", 3, __log)  # TODO: set programmatically
-    __remote_manager = rfut.ProcessSSH("deck", "192.168.2.35", 10, __log)  # TODO: set programmatically
 
     @staticmethod
     def set_logger_func(logger_func):
@@ -16,7 +13,7 @@ class Operations(AbstractOperations):
 
     @staticmethod
     def setup(details):
-        Operations.__log("Default remote setup")
+        Operations.__log("Default local setup")
 
     @staticmethod
     def check_need(details):
@@ -24,23 +21,23 @@ class Operations(AbstractOperations):
 
     @staticmethod
     def conditional_setup(details):
-        Operations.__log("Default remote conditional_setup")
+        Operations.__log("Default local conditional_setup")
 
     @staticmethod
     def copy(source, destination, max_use_of_free_space):
-        return Operations.__remote_manager.copy_to_remote(source, destination)
+        return fut.copy(source, destination, max_use_of_free_space, Operations.__log)
 
     @staticmethod
     def conditional_cleanup(details):
-        Operations.__log("Default remote conditional_cleanup")
+        Operations.__log("Default local conditional_cleanup")
 
     @staticmethod
     def cleanup(details):
-        Operations.__log("Default remote cleanup")
+        Operations.__log("Default local cleanup")
 
     @staticmethod
     def final(details):
-        Operations.__log("Default remote final")
+        Operations.__log("Default local final")
 
     @staticmethod
     def src_exists(filename):
@@ -48,11 +45,11 @@ class Operations(AbstractOperations):
 
     @staticmethod
     def dest_exists(filename):
-        return Operations.__remote_manager.exists(filename)
+        return fut.target_exists(filename)
 
     @staticmethod
     def delete_dest(filename):
-        return Operations.__remote_manager.delete(filename)
+        return fut.delete(filename, Operations.__log)
 
     @staticmethod
     def get_src_mod_time(filename):
@@ -60,7 +57,7 @@ class Operations(AbstractOperations):
 
     @staticmethod
     def get_backup_names(source, dest_dir):
-        items = Operations.__remote_manager.ls(dest_dir)
+        items = fut.get_all_items(dest_dir)
         return fc.get_backup_names(source, items)
 
     @staticmethod

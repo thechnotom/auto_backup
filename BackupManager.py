@@ -2,7 +2,7 @@ from .python_utilities import logger as lg
 from .python_utilities import strings as sut
 from .CopyDetails import CopyDetails
 from .constants import ResultCodes as rc
-from .local_operations import Operations as default_operations
+from .operations.local_operations import Operations as default_operations
 import sys
 import threading
 import time

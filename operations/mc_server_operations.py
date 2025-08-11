@@ -1,6 +1,6 @@
 from .local_operations import Operations as DefaultOps
-from .python_utilities.logger import Logger
-from .python_utilities.files import import_json
+from ..python_utilities.logger import Logger
+from ..python_utilities.files import import_json
 from .constants import ResultCodes as rc
 import subprocess
 import sys
