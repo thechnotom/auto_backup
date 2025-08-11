@@ -9,7 +9,7 @@ import time
 class Operations(DefaultOps):
 
     __log = Logger.make_generic_logger()
-    __settings = import_json("mc_server_operations_settings.json")
+    __settings = import_json(fut.path_to_directory(__file__) + "/mc_server_operations_settings.json")
     __screen_name = __settings["screen_name"]
 
     @staticmethod

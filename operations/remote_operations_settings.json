@@ -1,6 +1,6 @@
 {
-    "user": "deck",
-    "host": "192.168.2.35",
+    "user": "thoma",
+    "host": "raspberrypi",
     "default_timeout": 10,
     "copy_timeout": 120,
     "get_modification_timestamp_timeout": 60
