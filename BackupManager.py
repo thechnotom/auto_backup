@@ -55,6 +55,7 @@ class BackupManager():
         except Exception as e:
             self.logger.warning(f"Could not import operations module \"{operations_package_name}\" from: {operations_package_file}")
             self.logger.warning(f"Caught: {e}")
+            raise e
             self.logger.warning(f"Using default local operations instead")
             self.operations = default_operations
         self.operations.set_logger_func(self.logger.operation)
