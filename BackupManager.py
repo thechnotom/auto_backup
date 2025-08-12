@@ -15,6 +15,7 @@ class BackupManager():
 
     def __init__(self, settings, logger=None, name=None):
         self.status = sc.INACTIVE
+        self.exit_code = None
 
         self.name = name
         self.src = settings["src"]
@@ -79,6 +80,10 @@ class BackupManager():
         return self.status
 
 
+    def get_exit_code(self):
+        return self.exit_code
+
+
     def add_message(self, string):
         self.logger.MESSAGE(string)
 
@@ -119,7 +124,8 @@ class BackupManager():
                 self.logger.error(f"Source \"{self.src}\" and/or destination \"{self.dest_dir}\" does not exist")
                 self.add_message("Missing source and/or destination")
                 self.status = sc.ERROR
-                return ec.MISSING_SOURCE_OR_DESTINATION
+                self.exit_code =  ec.MISSING_SOURCE_OR_DESTINATION
+                return
             self.status = sc.WAITING_FOR_TIMER
             self.timer = self.start_timer(0 if self.backup_immediately else self.backup_time, self.timer_callback)
         else:
@@ -137,7 +143,8 @@ class BackupManager():
             self.logger.error(f"Source \"{self.src}\" and/or destination \"{self.dest_dir}\" does not exist")
             self.add_message("Missing source and/or destination")
             self.__start_retry_timer()
-            return ec.CONTROLLED
+            self.exit_code =  ec.CONTROLLED
+            return
         backup_names = self.operations.get_backup_names(self.src, self.dest_dir)
         destination = self.operations.get_relevant_backup_names(self.src, backup_names, self.dest_dir).next
         dest = sut.shorten_string(destination, 15, False, True)
@@ -201,11 +208,13 @@ class BackupManager():
             self.operations.final(copy_details)
             if not self.permit_copy_failure:
                 self.toggle_state(False)
-                return ec.COPY_FAILURE
+                self.exit_code = ec.COPY_FAILURE
+                return
             self.logger.timer(f"Restarting timer after copy operation failed")
             self.add_message(f"Retrying in {self.backup_retry_time}s")
             self.__start_retry_timer()
-            return ec.CONTROLLED
+            self.exit_code = ec.CONTROLLED
+            return
 
         # Check if the source file has changed between the start and end of the copy
         # If it has changed, delete the potentially corrupted backup and reset the timer with a quicker timer
@@ -220,7 +229,8 @@ class BackupManager():
                 if not self.permit_bad_backup_delete_failure:
                     self.logger.error(f"Cancelling backup since bad backup could not be deleted")
                     self.toggle_state(False)
-                    return ec.DELETE_BAD_BACKUP_FAILURE
+                    self.exit_code = ec.DELETE_BAD_BACKUP_FAILURE
+                    return
             else:
                 self.logger.backup(f"The file \"{destination}\" has been deleted to avoid possible corruption")
             copy_details.result = False
@@ -228,7 +238,8 @@ class BackupManager():
             self.operations.final(copy_details)
             self.logger.timer(f"Restarting timer after failed copy ({copy_duration} seconds)")
             self.__start_retry_timer()
-            return ec.CONTROLLED
+            self.exit_code = ec.CONTROLLED
+            return
 
         # If the file was successfully copied or skipped, restart the timer
         if not copy_skipped:
@@ -251,7 +262,8 @@ class BackupManager():
                         self.logger.error(f"Cancelling backup since old backups could not be cleared")
                         self.toggle_state(False)
                         self.operations.final(copy_details)
-                        return ec.DELETE_OLD_BACKUP_FAILURE
+                        self.exit_code = ec.DELETE_OLD_BACKUP_FAILURE
+                        return
                 else:
                     self.logger.info(f"Deleted \"{earliest_backup}\" successfully")
                     self.add_message(f"Deleted \"{sut.shorten_string(earliest_backup, 15, False, True)}\" successfully")
