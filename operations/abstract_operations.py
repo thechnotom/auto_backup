@@ -26,7 +26,7 @@ class AbstractOperations(ABC):
 
     @staticmethod
     @abstractmethod
-    def copy(source, destination, max_use_of_free_space):
+    def copy(source, destination):
         pass
 
     @staticmethod

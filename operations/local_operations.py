@@ -6,6 +6,8 @@ from .abstract_operations import AbstractOperations
 class Operations(AbstractOperations):
 
     __log = Logger.make_generic_logger()
+    __settings = import_json(fut.path_to_directory(__file__) + "/mc_server_operations_settings.json")
+    __max_use_of_free_space = __settings["max_use_of_free_space"]
 
     @staticmethod
     def set_logger_func(logger_func):
@@ -24,8 +26,8 @@ class Operations(AbstractOperations):
         Operations.__log("Default local conditional_setup")
 
     @staticmethod
-    def copy(source, destination, max_use_of_free_space):
-        return fut.copy(source, destination, max_use_of_free_space, Operations.__log)
+    def copy(source, destination):
+        return fut.copy(source, destination, Operations.__max_use_of_free_space, Operations.__log)
 
     @staticmethod
     def conditional_cleanup(details):

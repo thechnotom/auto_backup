@@ -35,7 +35,7 @@ class Operations(AbstractOperations):
         Operations.__log("Default remote conditional_setup")
 
     @staticmethod
-    def copy(source, destination, max_use_of_free_space):
+    def copy(source, destination):
         return Operations.__remote_manager.copy_to_remote(source, destination, Operations.__copy_timeout)
 
     @staticmethod

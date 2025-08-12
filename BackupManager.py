@@ -2,6 +2,8 @@ from .python_utilities import logger as lg
 from .python_utilities import strings as sut
 from .CopyDetails import CopyDetails
 from .constants import ResultCodes as rc
+from .constants import StatusCodes as sc
+from .constants import ExitCodes as ec
 from .operations.local_operations import Operations as default_operations
 import sys
 import threading
@@ -12,19 +14,23 @@ import importlib.util
 class BackupManager():
 
     def __init__(self, settings, logger=None, name=None):
+        self.status = sc.INACTIVE
+
         self.name = name
         self.src = settings["src"]
         self.dest_dir = settings["dest_dir"]
         self.backup_immediately = settings["immediately"]
         self.backup_time = settings["time"]
         self.max_num_backups = settings["max_num"]
-        self.max_use_of_free_space = settings["max_use_of_free_space"]
         self.backup_retry_time = settings["retry_time"]
         self.active = False
         self.timer = None
         self.last_timestamp = float("-inf")
         self.allow_skip = settings["allow_skip"]
         self.skip_check_exclusions = settings["skip_check_exclusions"]
+        self.permit_copy_failure = settings["permit_copy_failure"]
+        self.permit_bad_backup_delete_failure = settings["permit_bad_backup_delete_failure"]
+        self.permit_old_backup_delete_failure = settings["permit_old_backup_delete_failure"]
 
         # Make sure the logger (whether given or created here) has the expected logger types
         self.__required_logger_types = ["info", "warning", "error", "timer", "operation", "interaction", "backup", "MESSAGE"]
@@ -69,6 +75,10 @@ class BackupManager():
         return self.active
 
 
+    def get_status(self):
+        return self.status
+
+
     def add_message(self, string):
         self.logger.MESSAGE(string)
 
@@ -91,6 +101,13 @@ class BackupManager():
         return timer
 
 
+    def __start_retry_timer(self):
+        self.logger.timer(f"Trying again in {self.backup_retry_time} seconds")
+        self.add_message(f"Trying again in {self.backup_retry_time} seconds")
+        self.status = sc.WAITING_FOR_RETRY
+        self.timer = self.start_timer(self.backup_retry_time, self.timer_callback)
+
+
     def toggle_state(self, is_user_interaction=True):
         if self.src is None or self.dest_dir is None:
             self.logger.warning("Cannot start timer without a source and a destination")
@@ -101,12 +118,15 @@ class BackupManager():
             if not self.source_exists() or not self.dest_exists():
                 self.logger.error(f"Source \"{self.src}\" and/or destination \"{self.dest_dir}\" does not exist")
                 self.add_message("Missing source and/or destination")
-                return
+                self.status = sc.ERROR
+                return ec.MISSING_SOURCE_OR_DESTINATION
+            self.status = sc.WAITING_FOR_TIMER
             self.timer = self.start_timer(0 if self.backup_immediately else self.backup_time, self.timer_callback)
         else:
             # Asking to stop a timer
             if is_user_interaction:
                 self.logger.interaction("Stopping timer")
+            self.status = sc.INACTIVE
             self.timer.cancel()
         self.active = not self.active
 
@@ -116,8 +136,8 @@ class BackupManager():
         if not self.source_exists() or not self.dest_exists():
             self.logger.error(f"Source \"{self.src}\" and/or destination \"{self.dest_dir}\" does not exist")
             self.add_message("Missing source and/or destination")
-            self.toggle_state(False)
-            return
+            self.__start_retry_timer()
+            return ec.CONTROLLED
         backup_names = self.operations.get_backup_names(self.src, self.dest_dir)
         destination = self.operations.get_relevant_backup_names(self.src, backup_names, self.dest_dir).next
         dest = sut.shorten_string(destination, 15, False, True)
@@ -140,15 +160,17 @@ class BackupManager():
             self.operations.conditional_setup(copy_details)
             self.logger.backup(f"Copying \"{self.src}\" to \"{destination}\"")
             self.add_message(f"Starting to copy to \"{dest}\"")
+            self.status = sc.COPYING
             start_timestamp = self.get_source_mod_time()
             self.last_timestamp = start_timestamp
             start_time = time.time()
-            copy_result = self.operations.copy(self.src, destination, self.max_use_of_free_space)
+            copy_result = self.operations.copy(self.src, destination)
             end_time = time.time()
             copy_duration = round(end_time - start_time, 2)
             end_timestamp = self.get_source_mod_time()
             self.logger.backup("Copy complete")
             self.add_message("Copy complete")
+            self.status = sc.COPY_COMPLETE
 
             copy_details.start_time = start_time
             copy_details.end_time = end_time
@@ -174,11 +196,12 @@ class BackupManager():
         if (not copy_result) and (not copy_skipped):
             self.logger.backup(f"The copy operation for \"{self.src}\" to \"{self.dest_dir}\" failed")
             self.add_message(f"Copy to \"{dest}\" failed (copy error)")
-            self.toggle_state(False)
             copy_details.result = False
             copy_details.code = rc.COPY_ERROR
             self.operations.final(copy_details)
-            return
+            if not self.permit_copy_failure:
+                self.toggle_state(False)
+                return ec.COPY_FAILURE
 
         # Check if the source file has changed between the start and end of the copy
         # If it has changed, delete the potentially corrupted backup and reset the timer with a quicker timer
@@ -187,20 +210,21 @@ class BackupManager():
             self.add_message(f"Copy to \"{dest}\" failed (found changes in source)")
             if not self.operations.delete_dest(destination):
                 self.logger.error(f"Could not delete \"{destination}\"")
-                self.logger.error(f"Cancelling backup since bad backup could not be deleted")
                 copy_details.result = False
                 copy_details.code = rc.CANNOT_DELETE_BAD_BACKUP
                 self.operations.final(copy_details)
-                return
-            self.logger.backup(f"The file \"{destination}\" has been deleted to avoid possible corruption")
+                if not self.permit_bad_backup_delete_failure:
+                    self.logger.error(f"Cancelling backup since bad backup could not be deleted")
+                    self.toggle_state(False)
+                    return ec.DELETE_BAD_BACKUP_FAILURE
+            else:
+                self.logger.backup(f"The file \"{destination}\" has been deleted to avoid possible corruption")
             copy_details.result = False
             copy_details.code = rc.SOURCE_CHANGE
             self.operations.final(copy_details)
             self.logger.timer(f"Restarting timer after failed copy ({copy_duration} seconds)")
-            self.logger.timer(f"Trying again in {self.backup_retry_time} seconds")
-            self.add_message(f"Trying again in {self.backup_retry_time} seconds")
-            self.timer = self.start_timer(self.backup_retry_time, self.timer_callback)
-            return
+            self.__start_retry_timer()
+            return ec.CONTROLLED
 
         # If the file was successfully copied or skipped, restart the timer
         if not copy_skipped:
@@ -209,6 +233,7 @@ class BackupManager():
 
             # Check if an older backup needs to be deleted
             while True:
+                self.status = sc.DELETING_OLD_BACKUPS
                 backup_names = self.operations.get_backup_names(self.src, self.dest_dir)
                 if len(backup_names) <= self.max_num_backups:
                     break
@@ -216,14 +241,16 @@ class BackupManager():
                 self.logger.backup(f"Deleting \"{earliest_backup}\" as it is the oldest backup")
                 if not self.operations.delete_dest(earliest_backup):
                     self.logger.error(f"Could not delete \"{earliest_backup}\"")
-                    self.logger.error(f"Cancelling backup since old backups could not be cleared")
-                    self.toggle_state(False)
                     copy_details.result = False
                     copy_details.code = rc.CANNOT_DELETE_OLD_BACKUP
-                    self.operations.final(copy_details)
-                    return
-                self.logger.info(f"Deleted \"{earliest_backup}\" successfully")
-                self.add_message(f"Deleted \"{sut.shorten_string(earliest_backup, 15, False, True)}\" successfully")
+                    if not self.permit_old_backup_delete_failure:
+                        self.logger.error(f"Cancelling backup since old backups could not be cleared")
+                        self.toggle_state(False)
+                        self.operations.final(copy_details)
+                        return ec.DELETE_OLD_BACKUP_FAILURE
+                else:
+                    self.logger.info(f"Deleted \"{earliest_backup}\" successfully")
+                    self.add_message(f"Deleted \"{sut.shorten_string(earliest_backup, 15, False, True)}\" successfully")
 
         else:
             self.logger.info("Copy skipped")
@@ -233,6 +260,7 @@ class BackupManager():
         copy_details.code = rc.SUCCESS
         self.operations.final(copy_details)
         self.logger.timer(f"Restarting timer after copy ({self.backup_time} seconds)")
+        self.status = sc.WAITING_FOR_TIMER
         self.timer = self.start_timer(self.backup_time, self.timer_callback)
 
 
@@ -263,7 +291,7 @@ class BackupManager():
         backupManager = BackupManager(settings, logger, name)
         backupManager.start_backup()
         try:
-            while True:
+            while backupManager.is_active():
                 time.sleep(1)  # sleep to prevent high CPU usage
         except KeyboardInterrupt as e:
             backupManager.logger.info("Caught interrupt... stopping backups")

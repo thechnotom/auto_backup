@@ -1,7 +1,30 @@
-class ResultCodes:
+from enum import Enum
+
+class ResultCodes(Enum):
     SUCCESS = 0
     COPY_ERROR = 101
     SOURCE_CHANGE = 102
     CANNOT_DELETE_BAD_BACKUP = 103
     CANNOT_DELETE_OLD_BACKUP = 104
     UNKNOWN = 200
+
+
+class StatusCodes(Enum):
+    ERROR = -1
+    INACTIVE = 1
+    WAITING_FOR_TIMER = 2
+    WAITING_FOR_TIMER_AFTER_SKIP = 3
+    WAITING_FOR_RETRY = 4
+    COPYING = 5
+    COPY_COMPLETE = 6
+    DELETING_OLD_BACKUPS = 7
+
+
+class ExitCodes(Enum):
+    MISSING_SOURCE_OR_DESTINATION = 1
+    UNEXPECTED_ERROR = 2
+    COPY_FAILURE = 3
+    DELETE_BAD_BACKUP_FAILURE = 4
+    DELETE_OLD_BACKUP_FAILURE = 5
+    CONTROLLED = 6
+    CLEAN = 7
