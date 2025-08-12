@@ -202,6 +202,10 @@ class BackupManager():
             if not self.permit_copy_failure:
                 self.toggle_state(False)
                 return ec.COPY_FAILURE
+            self.logger.timer(f"Restarting timer after copy operation failed")
+            self.add_message(f"Retrying in {self.backup_retry_time}s")
+            self.__start_retry_timer()
+            return ec.CONTROLLED
 
         # Check if the source file has changed between the start and end of the copy
         # If it has changed, delete the potentially corrupted backup and reset the timer with a quicker timer
