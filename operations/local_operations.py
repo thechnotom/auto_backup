@@ -7,7 +7,7 @@ from .abstract_operations import AbstractOperations
 class Operations(AbstractOperations):
 
     __log = Logger.make_generic_logger()
-    __settings = import_json(fut.path_to_directory(__file__) + "/mc_server_operations_settings.json")
+    __settings = import_json(fut.path_to_directory(__file__) + "local_operations_settings.json")
     __max_use_of_free_space = __settings["max_use_of_free_space"]
 
     @staticmethod
