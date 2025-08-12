@@ -221,6 +221,7 @@ class BackupManager():
         if start_timestamp != end_timestamp and (not copy_skipped):
             self.logger.warning(f"The file \"{self.src}\" changed while being copied")
             self.add_message(f"Copy to \"{dest}\" failed (found changes in source)")
+            self.logger.backup(f"Attempting to delete the file \"{destination}\" to avoid possible corruption")
             if not self.operations.delete_dest(destination):
                 self.logger.error(f"Could not delete \"{destination}\"")
                 copy_details.result = False
@@ -232,7 +233,7 @@ class BackupManager():
                     self.exit_code = ec.DELETE_BAD_BACKUP_FAILURE
                     return
             else:
-                self.logger.backup(f"The file \"{destination}\" has been deleted to avoid possible corruption")
+                self.logger.backup(f"Successfully deleted \"{destination}\"")
             copy_details.result = False
             copy_details.code = rc.SOURCE_CHANGE
             self.operations.final(copy_details)
@@ -264,6 +265,7 @@ class BackupManager():
                         self.operations.final(copy_details)
                         self.exit_code = ec.DELETE_OLD_BACKUP_FAILURE
                         return
+                    break
                 else:
                     self.logger.info(f"Deleted \"{earliest_backup}\" successfully")
                     self.add_message(f"Deleted \"{sut.shorten_string(earliest_backup, 15, False, True)}\" successfully")
