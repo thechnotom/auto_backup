@@ -61,7 +61,7 @@ class AbstractOperations(ABC):
 
     @staticmethod
     @abstractmethod
-    def get_src_mod_time(filename):
+    def get_src_mod_time(filename, exclusions=None):
         pass
 
     @staticmethod

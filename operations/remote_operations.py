@@ -63,8 +63,8 @@ class Operations(AbstractOperations):
         return Operations.__remote_manager.delete(filename)
 
     @staticmethod
-    def get_src_mod_time(filename):
-        return fut.get_mod_time(filename)
+    def get_src_mod_time(filename, exclusions=None):
+        return fut.last_modified(filename, exclusions)
 
     @staticmethod
     def get_backup_names(source, dest_dir):

@@ -24,6 +24,7 @@ class BackupManager():
         self.timer = None
         self.last_timestamp = float("-inf")
         self.allow_skip = settings["allow_skip"]
+        self.skip_check_exclusions = settings["skip_check_exclusions"]
 
         # Make sure the logger (whether given or created here) has the expected logger types
         self.__required_logger_types = ["info", "warning", "error", "timer", "operation", "interaction", "backup", "MESSAGE"]
@@ -81,7 +82,7 @@ class BackupManager():
 
 
     def get_source_mod_time(self):
-        return self.operations.get_src_mod_time(self.src)
+        return self.operations.get_src_mod_time(self.src, self.skip_check_exclusions)
 
     def start_timer(self, seconds, callback, args=None, kargs=None):
         timer = threading.Timer(seconds, callback, args, kargs)
