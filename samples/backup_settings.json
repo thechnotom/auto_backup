@@ -1,0 +1,15 @@
+{
+    "src": "source",
+    "dest_dir": "destination",
+    "max_num": 5,
+    "time": 300,
+    "retry_time": 30,
+    "immediately": true,
+    "operations_module_name": "modulefile",
+    "operations_module_file": "path/to/modulefile.py",
+    "allow_skip": false,
+    "skip_check_exclusions": [],
+    "permit_copy_failure": true,
+    "permit_bad_backup_delete_failure": true,
+    "permit_old_backup_delete_failure": true
+}
