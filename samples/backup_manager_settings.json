@@ -6,7 +6,7 @@
     "retry_time": 30,
     "immediately": true,
     "operations_module_name": "modulefile",
-    "operations_module_file": "path/to/modulefile.py",
+    "operations_module_filename": "path/to/modulefile.py",
     "allow_skip": false,
     "skip_check_exclusions": [],
     "permit_copy_failure": true,

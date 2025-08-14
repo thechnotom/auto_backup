@@ -13,25 +13,42 @@ import importlib.util
 
 class BackupManager():
 
-    def __init__(self, settings, logger=None, name=None):
-        self.status = sc.INACTIVE
-        self.exit_code = None
-
+    def __init__(
+        self,
+        src,
+        dest_dir,
+        name=None,
+        max_num_backups=5,
+        backup_time=300,
+        backup_retry_time=30,
+        backup_immediately=True,
+        operations_module_name=None,
+        operations_module_filename=None,
+        allow_skip=False,
+        skip_check_exclusions=None,
+        permit_copy_failure=False,
+        permit_bad_backup_delete_failure=False,
+        permit_old_backup_delete_failure=False,
+        logger=None
+    ):
         self.name = name
-        self.src = settings["src"]
-        self.dest_dir = settings["dest_dir"]
-        self.backup_immediately = settings["immediately"]
-        self.backup_time = settings["time"]
-        self.max_num_backups = settings["max_num"]
-        self.backup_retry_time = settings["retry_time"]
+        self.src = src
+        self.dest_dir = dest_dir
+        self.backup_immediately = immediately
+        self.backup_time = backup_time
+        self.max_num_backups = max_num_backups
+        self.backup_retry_time = backup_retry_time
         self.active = False
         self.timer = None
         self.last_timestamp = float("-inf")
-        self.allow_skip = settings["allow_skip"]
-        self.skip_check_exclusions = settings["skip_check_exclusions"]
-        self.permit_copy_failure = settings["permit_copy_failure"]
-        self.permit_bad_backup_delete_failure = settings["permit_bad_backup_delete_failure"]
-        self.permit_old_backup_delete_failure = settings["permit_old_backup_delete_failure"]
+        self.allow_skip = allow_skip
+        self.skip_check_exclusions = skip_check_exclusions
+        self.permit_copy_failure = permit_copy_failure
+        self.permit_bad_backup_delete_failure = permit_bad_backup_delete_failure
+        self.permit_old_backup_delete_failure = permit_old_backup_delete_failure
+
+        self.status = sc.INACTIVE
+        self.exit_code = None
 
         # Make sure the logger (whether given or created here) has the expected logger types
         self.__required_logger_types = ["info", "warning", "error", "timer", "operation", "interaction", "backup", "MESSAGE"]
@@ -52,20 +69,55 @@ class BackupManager():
             if not self.logger.has_type(logger_type):
                 self.logger.add_type(logger_type, True)
 
-        operations_package_name = settings["operations_module_name"]
-        operations_package_file = settings["operations_module_file"]
         try:
-            spec = importlib.util.spec_from_file_location(operations_package_name, operations_package_file)
+            spec = importlib.util.spec_from_file_location(operations_module_name, operations_module_filename)
             operations_module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(operations_module)
             self.operations = operations_module.Operations
-            self.logger.info(f"Loaded operatons package \"{operations_package_name}\" from: {operations_package_file}")
+            self.logger.info(f"Loaded operatons package \"{operations_module_name}\" from: {operations_module_filename}")
         except Exception as e:
-            self.logger.warning(f"Could not import operations module \"{operations_package_name}\" from: {operations_package_file}")
+            self.logger.warning(f"Could not import operations module \"{operations_module_name}\" from: {operations_module_filename}")
             self.logger.warning(f"Caught: {e}")
             self.logger.warning(f"Using default local operations instead")
             self.operations = default_operations
         self.operations.set_logger_func(self.logger.operation)
+
+        self.name = name
+        self.src = settings["src"]
+        self.dest_dir = settings["dest_dir"]
+        self.backup_immediately = settings["immediately"]
+        self.backup_time = settings["time"]
+        self.max_num_backups = settings["max_num"]
+        self.backup_retry_time = settings["retry_time"]
+        self.active = False
+        self.timer = None
+        self.last_timestamp = float("-inf")
+        self.allow_skip = settings["allow_skip"]
+        self.skip_check_exclusions = settings["skip_check_exclusions"]
+        self.permit_copy_failure = settings["permit_copy_failure"]
+        self.permit_bad_backup_delete_failure = settings["permit_bad_backup_delete_failure"]
+        self.permit_old_backup_delete_failure = settings["permit_old_backup_delete_failure"]
+
+
+    @staticmethod
+    def from_settings_dict(settings, logger=None, name=None):
+        return BackupManager(
+            src=settings["src"],
+            dest_dir=settings["dest_dir"],
+            name=name,
+            max_num_backups=settings["max_num"],
+            backup_time=settings["time"],
+            backup_retry_time=settings["retry_time"],
+            backup_immediately=settings["immediately"],
+            operations_module_name=settings["operations_module_name"],
+            operations_module_filename=settings["operations_module_filename"],
+            allow_skip=settings["allow_skip"],
+            skip_check_exclusions=settings["skip_check_exclusions"],
+            permit_copy_failure=settings["permit_copy_failure"],
+            permit_bad_backup_delete_failure=settings["permit_bad_backup_delete_failure"],
+            permit_old_backup_delete_failure=settings["permit_old_backup_delete_failure"],
+            logger=logger
+        )
 
 
     def get_required_logger_types():
@@ -82,6 +134,10 @@ class BackupManager():
 
     def get_exit_code(self):
         return self.exit_code
+
+
+    def get_name(self):
+        return self.name
 
 
     def add_message(self, string):
