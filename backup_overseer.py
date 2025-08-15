@@ -30,7 +30,7 @@ class BackupOverseer:
             else:
                 logger_settings = overseer.logger.to_settings_dict()
                 logger_settings["logger"]["identifier"] = details["name"]
-                manager_logger = Logger.from_settings_dict(logger_settings["logger"], logger_settings["printer"])
+                manager_logger = Logger.from_settings_dict(logger_settings["logger"], logger_settings["printer_function"])
             overseer.add_manager(BackupManager.from_settings_dict(details["manager"], manager_logger, details["name"]))
         return overseer
 
