@@ -12,7 +12,7 @@ class BackupOverseer:
             self.logger = Logger(
                 types={"info": True},
                 printer=print,
-                identifier="overseer"
+                identifier="OVERSEER"
             )
 
         self.logger.add_all_types("info")
@@ -24,9 +24,14 @@ class BackupOverseer:
     def from_settings_dict(settings, logger=None):
         overseer = BackupOverseer(logger)
         for details in settings["managers"]:
+            manager_logger = logger
             if details["logging"] is not None:
-                logger = Logger.from_settings_dict(details["logging"])
-            overseer.add_manager(BackupManager.from_settings_dict(details, logger, details["name"]))
+                manager_logger = Logger.from_settings_dict_incl_printer(details["logging"])
+            else:
+                logger_settings = overseer.logger.to_settings_dict()
+                logger_settings["logger"]["identifier"] = details["name"]
+                manager_logger = Logger.from_settings_dict(logger_settings["logger"], logger_settings["printer"])
+            overseer.add_manager(BackupManager.from_settings_dict(details, manager_logger, details["name"]))
         return overseer
 
 
