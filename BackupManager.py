@@ -34,7 +34,7 @@ class BackupManager():
         self.name = name
         self.src = src
         self.dest_dir = dest_dir
-        self.backup_immediately = immediately
+        self.backup_immediately = backup_immediately
         self.backup_time = backup_time
         self.max_num_backups = max_num_backups
         self.backup_retry_time = backup_retry_time
