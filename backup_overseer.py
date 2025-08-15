@@ -1,5 +1,5 @@
-from BackupManager import BackupManager
-from python_utilities.logger import Logger
+from .backup_manager import BackupManager
+from .python_utilities.logger import Logger
 import threading
 import time
 
@@ -64,7 +64,7 @@ class BackupOverseer:
             result = self.stop_manager(manager_name)
             if not result:
                 logger.info(f"Manager \"{manager_name}\" is already not active")
-        return threading.Thread(target=thread_func, name=manager.get_name())
+        return threading.Thread(target=thread_func, name=manager_name)
 
 
     def is_manager_active(self, manager_name):
