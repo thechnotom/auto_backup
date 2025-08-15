@@ -82,22 +82,6 @@ class BackupManager():
             self.operations = default_operations
         self.operations.set_logger_func(self.logger.operation)
 
-        self.name = name
-        self.src = settings["src"]
-        self.dest_dir = settings["dest_dir"]
-        self.backup_immediately = settings["immediately"]
-        self.backup_time = settings["time"]
-        self.max_num_backups = settings["max_num"]
-        self.backup_retry_time = settings["retry_time"]
-        self.active = False
-        self.timer = None
-        self.last_timestamp = float("-inf")
-        self.allow_skip = settings["allow_skip"]
-        self.skip_check_exclusions = settings["skip_check_exclusions"]
-        self.permit_copy_failure = settings["permit_copy_failure"]
-        self.permit_bad_backup_delete_failure = settings["permit_bad_backup_delete_failure"]
-        self.permit_old_backup_delete_failure = settings["permit_old_backup_delete_failure"]
-
 
     @staticmethod
     def from_settings_dict(settings, logger=None, name=None):
