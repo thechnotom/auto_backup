@@ -15,8 +15,6 @@ class BackupOverseer:
                 identifier="OVERSEER"
             )
 
-        self.logger.add_all_types("info")
-
         self.managers = {}
 
 
