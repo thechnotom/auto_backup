@@ -65,9 +65,7 @@ class BackupManager():
                 do_type_missing_indicator=True,
                 do_strict_types=False
             )
-        for logger_type in self.__required_logger_types:
-            if not self.logger.has_type(logger_type):
-                self.logger.add_type(logger_type, True)
+        self.logger.add_all_types(self.__required_logger_types)
 
         try:
             spec = importlib.util.spec_from_file_location(operations_module_name, operations_module_filename)
