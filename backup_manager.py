@@ -329,7 +329,7 @@ class BackupManager():
 
 
     def stop_backup(self):
-        self.logger.info(f"Stopping backups for {self.name}")
+        self.logger.info(f"Stopping backups for \"{self.name}\"")
         if not self.active:
             return False
         self.toggle_state(False)  # stop backups
