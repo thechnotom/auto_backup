@@ -21,7 +21,7 @@ class BackupOverseer:
             )
         
         try:
-            self.logger.add_type("info", True)
+            self.logger.add_all_types(["info", "warning"])
         except LoggerExceptions.OverrideLoggerTypeException as e:
             pass
 
@@ -75,9 +75,6 @@ class BackupOverseer:
             manager.start_backup()
             while self.is_manager_active(manager_name):
                 time.sleep(1)
-            result = manager.stop_backup()
-            if not result:
-                self.logger.info(f"Manager \"{manager_name}\" is already not active")
         return threading.Thread(target=thread_func, name=manager_name)
 
 
@@ -107,17 +104,42 @@ class BackupOverseer:
 
 
     def start_all(self):
-        for key in self.managers:
-            self.logger.info(f"Starting manager: {key}")
-            self.start_manager_thread(key)
+        for manager_name in self.managers:
+            self.logger.info(f"Starting manager: {manager_name}")
+            self.start_manager_thread(manager_name)
 
 
     def stop_all(self, wait_for_threads=True):
-        for key in self.managers:
-            self.logger.info(f"Stopping manager: {key}")
-            self.stop_manager(key, False)
+        for manager_name in self.managers:
+            self.logger.info(f"Stopping manager: {manager_name}")
+            self.stop_manager(manager_name, False)
         if wait_for_threads:
-            for key, manager_objects in self.managers.items():
-                self.logger.info(f"Waiting for manager: {key}")
-                self.get_thread(key).join()
-                self.logger.info(f"Manager stopped: {key}")
+            for manager_name in self.managers:
+                self.logger.info(f"Waiting for manager: {manager_name}")
+                self.get_thread(manager_name).join()
+                self.logger.info(f"Manager stopped: {manager_name}")
+
+
+    def run_all(self, max_time=None):
+        self.start_all()
+
+        if max_time is None:
+            try:
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt as e:
+                self.logger.info("Caught interrupt... stopping backups")
+                self.stop_all()
+            except Exception as e:
+                self.logger.warning("An unknown exception caused the program to halt")
+                self.logger.warning(str(e))
+                raise e
+
+        else:
+            timer = threading.Timer(max_time, self.stop_all)
+            timer.name = f"{self.logger.get_identifier()}-stop-all-timer"
+            timer.start()
+            if timer is not None:
+                timer.join()
+
+        self.logger.info("Program terminated")
