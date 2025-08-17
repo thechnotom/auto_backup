@@ -69,6 +69,17 @@ class BackupOverseer:
         return True
 
 
+    def remove_manager(self, manager_name, stop_manager=True):
+        if manager_name not in self.managers:
+            return False
+        if stop_manager:
+            result = self.stop_manager(manager_name)
+            if not result:
+                return False
+        self.managers.pop(manager_name)
+        return True
+
+
     def __create_manager_thread(self, manager_name):
         def thread_func():
             manager = self.get_manager(manager_name)
