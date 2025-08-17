@@ -146,6 +146,9 @@ class BackupOverseer:
                 self.logger.warning(str(e))
                 raise e
 
+        elif max_time == float("inf"):
+            pass
+
         else:
             timer = threading.Timer(max_time, self.stop_all)
             timer.name = f"{self.logger.get_identifier()}-stop-all-timer"
