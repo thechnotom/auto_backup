@@ -84,7 +84,7 @@ class BackupOverseer:
         return self.managers[manager_name]["manager"].is_active()
 
 
-    def start_manager_thread(self, manager_name):
+    def start_manager(self, manager_name):
         if manager_name not in self.managers:
             return False
         if self.get_thread(manager_name).is_alive():
@@ -106,7 +106,7 @@ class BackupOverseer:
     def start_all(self):
         for manager_name in self.managers:
             self.logger.info(f"Starting manager: {manager_name}")
-            self.start_manager_thread(manager_name)
+            self.start_manager(manager_name)
 
 
     def stop_all(self, wait_for_threads=True):
