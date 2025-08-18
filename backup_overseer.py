@@ -131,6 +131,34 @@ class BackupOverseer:
                 self.logger.info(f"Manager stopped: {manager_name}")
 
 
+    def run(self, manager_name, max_time=None):
+        self.start_manager(manager_name)
+
+        if max_time is None:
+            try:
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt as e:
+                self.logger.info(f"Caught interrupt... stopping manager: {manager_name}")
+                self.stop_manager(manager_name)
+            except Exception as e:
+                self.logger.warning("An unknown exception caused the program to halt")
+                self.logger.warning(str(e))
+                raise e
+
+        elif max_time == float("inf"):
+            pass
+        
+        else:
+            timer = threading.Timer(max_time, self.stop_manager, kwargs={ "manager_name": manager_name })
+            timer.name = f"{self.logger.get_identifier()}-stop-{manager_name}-timer"
+            timer.start()
+            if timer is not None:
+                timer.join()
+
+        self.logger.info(f"Manager \"{manager_name}\" terminated")
+
+
     def run_all(self, max_time=None):
         self.start_all()
 
@@ -139,7 +167,7 @@ class BackupOverseer:
                 while True:
                     time.sleep(1)
             except KeyboardInterrupt as e:
-                self.logger.info("Caught interrupt... stopping backups")
+                self.logger.info("Caught interrupt... stopping all managers")
                 self.stop_all()
             except Exception as e:
                 self.logger.warning("An unknown exception caused the program to halt")
@@ -156,4 +184,4 @@ class BackupOverseer:
             if timer is not None:
                 timer.join()
 
-        self.logger.info("Program terminated")
+        self.logger.info("All managers terminated")
