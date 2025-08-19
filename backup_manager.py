@@ -353,7 +353,7 @@ class BackupManager():
             backupManager.logger.info("Caught interrupt... stopping backups")
             backupManager.stop_backup()
         except Exception as e:
-            backupManager.logger.warning("An unknown exception caused the program to halt")
+            backupManager.logger.warning("An unknown exception caused the manager raise an exception")
             backupManager.logger.warning(str(e))
             raise e
         backupManager.logger.info("Program terminated")

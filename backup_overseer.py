@@ -47,7 +47,7 @@ class BackupOverseer:
         return list(self.managers.keys())
 
 
-    def get_all_managers(self):
+    def get_manager_storage(self):
         return self.managers
 
 
@@ -59,8 +59,12 @@ class BackupOverseer:
         return self.managers[manager_name]["thread"]
 
 
+    def manager_exists(self, manager_name):
+        return manager_name in self.managers
+
+
     def add_manager(self, manager):
-        if manager.get_name() in self.managers:
+        if not self.manager_exists(manager.get_name()):
             return False
         self.managers[manager.get_name()] = {
             "manager": manager,
@@ -70,7 +74,7 @@ class BackupOverseer:
 
 
     def remove_manager(self, manager_name, stop_manager=True):
-        if manager_name not in self.managers:
+        if not self.manager_exists(manager_name):
             return False
         if stop_manager:
             result = self.stop_manager(manager_name)
@@ -90,23 +94,23 @@ class BackupOverseer:
 
 
     def is_manager_active(self, manager_name):
-        if manager_name not in self.managers:
+        if not self.manager_exists(manager_name):
             return False
-        return self.managers[manager_name]["manager"].is_active()
+        return self.get_manager(manager_name).is_active()
 
 
     def start_manager(self, manager_name):
-        if manager_name not in self.managers:
+        if not self.manager_exists(manager_name):
             return False
         if self.get_thread(manager_name).is_alive():
             self.logger.info(f"Thread for \"{manager_name}\" is already alive")
             return False
-        self.managers[manager_name]["thread"].start()
+        self.get_thread(manager_name).start()
         return True
 
 
     def stop_manager(self, manager_name, wait_for_threads=True):
-        if manager_name not in self.managers:
+        if not self.manager_exists(manager_name):
             return False
         result = self.get_manager(manager_name).stop_backup()
         if wait_for_threads:
@@ -142,7 +146,7 @@ class BackupOverseer:
                 self.logger.info(f"Caught interrupt... stopping manager: {manager_name}")
                 self.stop_manager(manager_name)
             except Exception as e:
-                self.logger.warning("An unknown exception caused the program to halt")
+                self.logger.warning("An unknown exception caused the overseer raise an exception")
                 self.logger.warning(str(e))
                 raise e
 
@@ -170,7 +174,7 @@ class BackupOverseer:
                 self.logger.info("Caught interrupt... stopping all managers")
                 self.stop_all()
             except Exception as e:
-                self.logger.warning("An unknown exception caused the program to halt")
+                self.logger.warning("An unknown exception caused the overseer raise an exception")
                 self.logger.warning(str(e))
                 raise e
 
