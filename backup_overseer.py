@@ -64,7 +64,7 @@ class BackupOverseer:
 
 
     def add_manager(self, manager):
-        if not self.manager_exists(manager.get_name()):
+        if self.manager_exists(manager.get_name()):
             return False
         self.managers[manager.get_name()] = {
             "manager": manager,
