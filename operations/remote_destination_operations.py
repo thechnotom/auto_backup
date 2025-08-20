@@ -21,6 +21,7 @@ class Operations(AbstractOperations):
     @staticmethod
     def set_logger_func(logger_func):
         Operations.__log = logger_func
+        Operations.__remote_manager.set_logger(Operations.__log)
 
     @staticmethod
     def setup(details):
